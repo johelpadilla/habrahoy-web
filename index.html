@@ -1,0 +1,114 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HabraHoy — Metodología</title><meta name="description" content="HabraHoy: proyecto de investigación sobre la inestabilidad del sistema eléctrico de Puerto Rico a partir de menciones públicas.">
+<link rel="icon" href="assets/avatar.png"><link rel="stylesheet" href="styles.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script><script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true},{left:'$',right:'$',display:false}]})"></script></head><body>
+<header class="nav"><a class="brand" href="#top"><img src="assets/avatar.png" alt=""><span>HabraHoy</span><span class="tag">experimental</span></a>
+<nav><a href="#que">Qué es</a><a href="#fuentes">Fuentes</a><a href="#teoria">Teoría</a><a href="#decide">Cómo decide</a><a href="#leer">Cómo leer</a><a href="#limites">Límites</a></nav></header>
+<main id="top">
+<section class="hero"><p class="kicker">Proyecto de investigación · Puerto Rico</p><p class="exp">Proyecto de investigación en fase <b>experimental</b>. Los mapas, los clasificadores y el índice de riesgo no han sido validados para uso operacional.</p>
+<h1>HabraHoy<br><em>Monitoreo de la inestabilidad</em> del sistema eléctrico de Puerto Rico</h1>
+<p class="lede">HabraHoy publica diariamente a las 9:00 PM (hora de Puerto Rico) una síntesis cartográfica de las menciones públicas de interrupciones del servicio eléctrico por municipio, acompañada de una estimación experimental del riesgo de interrupciones de gran escala. Dicha estimación no constituye un pronóstico.</p>
+<div class="bar"></div></section>
+
+<section id="que" class="sec"><span class="num">01</span><h2>Qué es HabraHoy</h2>
+<div class="grid2"><p>HabraHoy es un proyecto de investigación en salud pública y sistemas complejos. Recopila menciones públicas en X relacionadas con interrupciones del servicio eléctrico, las asigna geográficamente por municipio y difunde diariamente mapas de la isla y de seis regiones.</p>
+<p>El proyecto es independiente y complementa, sin sustituir, la información de las entidades responsables del servicio. Utiliza exclusivamente datos públicos; su metodología se documenta en esta página.</p></div>
+<ul class="facts"><li><b>9:00 PM</b><span>publicación diaria en @HabraHoy</span></li><li><b>78</b><span>municipios, 7 mapas</span></li><li><b>3 h · 120 h</b><span>horizontes de riesgo</span></li></ul></section>
+
+<section id="fuentes" class="sec"><span class="num">02</span><h2>Fuentes de datos</h2>
+<div class="cards">
+<article><h3>Menciones públicas en X</h3><p>Publicaciones públicas que mencionan a @aeeonline y @lumaenergypr. Se analizan de forma agregada por municipio; no se reproduce su contenido.</p></article>
+<article><h3>787daily</h3><p>Registro independiente del porcentaje de clientes sin servicio, utilizado para identificar y validar interrupciones de gran escala.</p></article>
+<article><h3>EAGLE‑I</h3><p>Datos de interrupciones del Departamento de Energía de EE. UU. (ORNL), empleados como fuente de validación adicional.</p></article>
+<article><h3>Censo 2020</h3><p>Población municipal para normalizar las menciones por cada 1,000 habitantes, y nomenclatura oficial de barrios para la desambiguación de topónimos repetidos.</p></article>
+</div></section>
+
+<section id="teoria" class="sec theory"><span class="num">03</span><h2>Fundamento teórico</h2>
+<p class="intro">El proyecto combina dos marcos no clásicos: (i) una transformación heurística inspirada en la universalidad de Feigenbaum en la ruta al caos por duplicación de período, y (ii) un enfoque ordinal y simbólico de la información, en lugar de la entropía de Shannon calculada sobre amplitudes. Esta sección describe exclusivamente lo que se implementa en el código, indicando qué componentes son exploratorios.</p>
+
+<h3>3.1 Universalidad de Feigenbaum y transformación del índice de riesgo</h3>
+<p><b>Antecedente.</b> En aplicaciones unimodales $x_{n+1}=f_r(x_n)$ (p. ej., la logística $f_r(x)=r\,x(1-x)$), la secuencia de bifurcaciones por duplicación de período $r_1&lt;r_2&lt;\dots$ converge geométricamente al umbral del caos $r_\infty$, con razón universal</p>
+$$\delta=\lim_{n\to\infty}\frac{r_{n}-r_{n-1}}{r_{n+1}-r_{n}}\approx 4.669201609\ldots,$$
+<p>y las escalas espaciales de los ciclos se contraen según el factor universal $\alpha\approx 2.502907875\ldots$ (Feigenbaum, 1978; 1979). La universalidad establece que estos valores son independientes de los detalles de $f$ dentro de la clase de aplicaciones con un máximo cuadrático.</p>
+<p><b>Definición operativa (Vigilancia.R).</b> Sea $X$ el número de menciones filtradas en una ventana y $k$ el número de días que abarca ($k=2$ para el horizonte de 3 h, sobre las dos últimas clases diarias; $k=2.5$ para el horizonte de 120 h, sobre la ventana completa, con $X=X_1$). Se define la intensidad saturada</p>
+$$Z=\frac{X/k}{X/k+1}\in[0,1),$$
+<p>y el índice</p>
+$$R=\frac{Z^{\,e^{\delta}}}{Z^{\,e^{\alpha}}}=Z^{\,e^{\delta}-e^{\alpha}}\approx Z^{\,94.39}.$$
+<p>El valor publicado es $100\,R$ (%), truncado a «&lt;0.005» o «&gt;99 %» en los extremos.</p>
+<p class="caveat"><b>Estatus.</b> $R$ es una <b>transformación heurística</b> de la intensidad de menciones, monótona creciente en $X$, que concentra la probabilidad cerca de $Z\to1$. No se deriva de una ley física ni se ha demostrado que la red eléctrica siga una ruta de duplicación de período; las constantes $\delta$ y $\alpha$ fijan el exponente, pero su uso es una analogía de diseño. Su calibración frente a eventos observados está en curso bajo un protocolo preregistrado.</p>
+
+<h3>3.2 Dimensión fractal reportada en el mapa</h3>
+<p>Sea $\rho_i$ la tasa de menciones por cada 1,000 habitantes del municipio $i$ en las últimas 24 h (Censo 2020). El mapa reporta</p>
+$$D=\sqrt{\max_i \rho_i},\qquad F=\frac{D}{\sqrt{0.17}},$$
+<p>con las etiquetas «Cantor dust» si $D&lt;1$ y «too chaotic» si $D&gt;3$; la nota del mapa sugiere inestabilidad amplia para $D\ge1.7$, un <b>criterio experimental</b> no validado. $F$ se denomina factor de riesgo fractal, y 0.17 es un nivel de referencia fijado por el autor.</p>
+<p class="caveat"><b>Estatus.</b> $D$ es un <b>indicador descriptivo</b> nombrado por analogía con la dimensión fractal; no es una estimación de dimensión de Hausdorff ni de conteo de cajas, y depende de la escala de normalización (×1,000).</p>
+
+<h3>3.3 Información ordinal: patrones ordinales y entropía de permutación</h3>
+<p>Dada una serie $\{x_t\}$, dimensión de inmersión $m$ y retardo $\tau_d$, cada vector $(x_t,x_{t+\tau_d},\dots,x_{t+(m-1)\tau_d})$ se asigna a la permutación $\pi\in S_m$ que ordena sus componentes. Con frecuencias relativas $p(\pi)$, la entropía de permutación normalizada es (Bandt y Pompe, 2002; Zanin et al., 2012)</p>
+$$H_m=-\frac{1}{\log m!}\sum_{\pi\in S_m}p(\pi)\log p(\pi)\in[0,1].$$
+<p><b>Justificación del orden frente a la magnitud.</b> Los conteos de menciones son discretos, dispersos, ruidosos y no estacionarios (ciclo día/noche, actividad variable de la plataforma). Para toda $g$ estrictamente creciente, $\pi\big(g(x)\big)=\pi(x)$: los estadísticos ordinales son <b>invariantes a transformaciones monótonas</b>, por lo que no dependen de la escala ni de la normalización y son menos sensibles a valores extremos que la entropía de Shannon estimada sobre amplitudes.</p>
+<p class="caveat"><b>Estatus.</b> $H_m$ forma parte del marco conceptual; en la versión actual del sistema <b>no se calcula</b> de manera operativa.</p>
+
+<h3>3.4 Concordancia ordinal y Systemic Tau</h3>
+<p>Para dos series $x,y$ en una ventana de $W$ observaciones, con $C$ y $D_c$ pares concordantes y discordantes, la concordancia de Kendall (1938) es</p>
+$$\tau_a=\frac{C-D_c}{\binom{W}{2}}=\frac{1}{\binom{W}{2}}\sum_{i&lt;j}\operatorname{sgn}(x_j-x_i)\,\operatorname{sgn}(y_j-y_i),$$
+<p>y $\tau_b$ es su versión corregida por empates. Systemic Tau resume la coherencia relacional del sistema como el promedio sobre un conjunto de aristas $E$ (aquí, pares de municipios o regiones colindantes):</p>
+$$\tau_s(t)=\frac{1}{|E|}\sum_{(u,v)\in E}\tau_b^{(u,v)}(t),$$
+<p>calculado en ventanas de $W=13$ h con paso de 1 h sobre $x_i(t)=$ menciones$_i(t)$/total de publicaciones en la hora $t$. Funciona como <b>disparador homeostático sin etiquetas</b>: se fija un punto de referencia $\bar\tau_b^{(e)}$ en un periodo de calibración y se calcula la desviación</p>
+$$\Delta(t)=\frac{1}{|E|}\sum_{e\in E}\big|\tau_b^{(e)}(t)-\bar\tau_b^{(e)}\big|,$$
+<p>con alarma si $\Delta(t)&gt;\mu_{\text{cal}}(\Delta)+3\,\sigma_{\text{cal}}(\Delta)$ y un periodo refractario de 13 h. $\tau_s$ mide coherencia, no riesgo.</p>
+<p class="caveat"><b>Estatus: exploratorio.</b> Supuestos: la homeostasis del sistema se refleja en la concordancia ordinal entre unidades vecinas, y el periodo de calibración representa un estado basal. Limitaciones: series muy dispersas con muchos empates (gran parte de las aristas son constantes en cada ventana), una muestra pequeña y no geolocalizada, y la posibilidad de que la calibración incluya eventos. En las evaluaciones ciegas, la alarma no detectó ninguno de los eventos; no se utiliza para emitir alertas.</p>
+
+<h3>3.5 Supuestos generales</h3>
+<ol class="assume"><li>Las menciones públicas son un indicador indirecto, sesgado y no exhaustivo de las interrupciones reales.</li>
+<li>La relación entre intensidad de menciones y probabilidad de un evento de gran escala es monótona.</li>
+<li>Los umbrales y las constantes son elecciones de diseño sujetas a calibración, no parámetros físicos estimados.</li></ol>
+</section>
+
+<section id="decide" class="sec"><span class="num">04</span><h2>Metodología</h2>
+<ol class="steps">
+<li><h3>Clasificación semántica de menciones</h3><p>Un modelo de lenguaje determina si una mención describe una interrupción del servicio, con independencia del vocabulario empleado. En una evaluación ciega con 150 publicaciones no utilizadas en su desarrollo, obtuvo una sensibilidad de 0.90, frente a 0.68–0.70 de los clasificadores por palabras clave.</p></li>
+<li><h3>Criterio de alerta</h3><p>Se emite una alerta cuando 787daily marca al menos <b>5 %</b> de clientes sin servicio en una región o <b>10 %</b> en toda la isla.</p></li>
+<li><h3>Definición de evento de gran escala</h3><p>Para fines de estimación, se define como la pérdida de servicio de al menos el <b>10 % de los clientes de la isla</b> o el <b>25 % de una región</b>.</p></li>
+<li><h3>Índice de riesgo a 3 y 120 horas</h3><p>Probabilidad estimada de un evento de gran escala en horizontes de 3 y 120 horas. Su recalibración con datos históricos sigue un protocolo registrado antes del análisis.</p></li>
+</ol>
+<div class="tau"><h3>Base teórica: Systemic Tau <span class="tag">capa exploratoria · en validación</span></h3>
+<p>El marco parte de la hipótesis de que un sistema sometido a estrés modifica la estructura ordinal de sus fluctuaciones antes de una falla. Systemic Tau caracteriza esa dinámica mediante patrones ordinales (Bandt y Pompe) y concordancia de rangos (Kendall).</p>
+<p class="honest"><b>Resultados a la fecha:</b> en las evaluaciones ciegas, el indicador Tau <b>no detectó</b> ninguno de los eventos, mientras que el criterio de porcentaje detectó <b>2 de 4</b>. En consecuencia, el Tau no se utiliza para emitir alertas; se calcula en paralelo con fines de validación. El proyecto no ofrece capacidad predictiva validada.</p>
+<h4>Bibliografía</h4><ul class="refs">
+<li>Feigenbaum, M. J. (1978). Quantitative universality for a class of nonlinear transformations. <i>Journal of Statistical Physics</i>, 19, 25–52. <a href="https://doi.org/10.1007/BF01020332">doi:10.1007/BF01020332</a></li>
+<li>Feigenbaum, M. J. (1979). The universal metric properties of nonlinear transformations. <i>Journal of Statistical Physics</i>, 21, 669–706. <a href="https://doi.org/10.1007/BF01107909">doi:10.1007/BF01107909</a></li>
+<li>Bandt, C., y Pompe, B. (2002). Permutation entropy: a natural complexity measure for time series. <i>Physical Review Letters</i>, 88, 174102. <a href="https://doi.org/10.1103/PhysRevLett.88.174102">doi:10.1103/PhysRevLett.88.174102</a></li>
+<li>Zanin, M., Zunino, L., Rosso, O. A., y Papo, D. (2012). Permutation entropy and its main biomedical and econophysics applications: a review. <i>Entropy</i>, 14(8), 1553–1577. <a href="https://doi.org/10.3390/e14081553">doi:10.3390/e14081553</a></li>
+<li>Kendall, M. G. (1938). A new measure of rank correlation. <i>Biometrika</i>, 30(1–2), 81–93. <a href="https://doi.org/10.1093/biomet/30.1-2.81">doi:10.1093/biomet/30.1-2.81</a></li>
+<li>Padilla-Villanueva, J. Systemic Tau [manuscrito en revisión, <i>Nature Machine Intelligence</i>].</li>
+</ul></div></section>
+
+<section id="leer" class="sec"><span class="num">05</span><h2>Interpretación del mapa diario</h2>
+<p class="intro">Ejemplo: mapa publicado el 15 de octubre de 2026.</p>
+<figure class="annot"><div class="frame"><img src="assets/mapa-2026-10-15.png" alt="Mapa de HabraHoy del 15 de octubre de 2026">
+<svg viewBox="0 0 1600 900" aria-hidden="true">
+<g class="mk"><circle cx="1380" cy="62" r="26"/><text x="1380" y="71">1</text></g>
+<g class="mk"><circle cx="980" cy="112" r="26"/><text x="980" y="121">2</text></g>
+<g class="mk"><rect x="955" y="470" width="150" height="110" rx="14" class="hl"/><circle cx="1130" cy="470" r="26"/><text x="1130" y="479">3</text></g>
+<g class="mk"><circle cx="680" cy="727" r="26"/><text x="680" y="736">4</text></g>
+<g class="mk"><circle cx="1000" cy="867" r="26"/><text x="1000" y="876">5</text></g>
+</svg></div>
+<figcaption><ol class="legend">
+<li><b>Título y ventana temporal.</b> Comprende las 24 horas previas a las 9:00 PM (hora de Puerto Rico).</li>
+<li><b>Dimensión fractal (D).</b> Describe el grado de agregación espacial de las menciones. Valores bajos indican casos aislados; valores iguales o superiores a 1.7 sugieren inestabilidad generalizada (criterio experimental, no validado).</li>
+<li><b>Intensidad.</b> Los tonos oscuros indican mayor tasa de menciones por cada 1,000 habitantes; en este ejemplo, en el sureste y el área metropolitana.</li>
+<li><b>Escala.</b> Escala continua de amarillo (sin menciones) a morado (tasa máxima). Se ajusta diariamente, por lo que las comparaciones deben hacerse dentro de un mismo mapa.</li>
+<li><b>Datos.</b> Número de publicaciones analizadas y ventana temporal exacta.</li>
+</ol></figcaption></figure>
+<p class="note">La ausencia de menciones no implica ausencia de interrupciones; el mapa refleja únicamente lo reportado públicamente.</p></section>
+
+<section id="limites" class="sec"><span class="num">06</span><h2>Limitaciones y aviso</h2>
+<div class="grid2"><ul class="lim">
+<li>Las redes sociales no constituyen una muestra representativa de la población; las zonas con menor uso de X pueden estar subrepresentadas.</li>
+<li>Los clasificadores presentan errores, cuantificados mediante evaluaciones ciegas.</li>
+<li>El índice de riesgo es una estimación experimental en proceso de calibración y validación; no constituye un pronóstico.</li></ul>
+<div class="warn"><h3>Fase experimental y carácter no oficial</h3><p>Proyecto de investigación en fase experimental; los resultados no han sido validados para uso operacional. HabraHoy no está afiliado a LUMA Energy, a la AEE, a Genera PR ni a ninguna agencia gubernamental. Las emergencias y averías deben notificarse por los canales oficiales.</p></div></div></section>
+</main>
+<footer id="contacto"><img src="assets/avatar.png" alt=""><div><p class="by">Dr. Johel Padilla‑Villanueva, DrPH</p><p>Universidad de Puerto Rico, Recinto de Ciencias Médicas</p>
+<p><a href="https://orcid.org/0000-0002-5797-6931">ORCID 0000‑0002‑5797‑6931</a> · <a href="https://x.com/HabraHoy">@HabraHoy en X</a></p></div></footer>
+</body></html>
